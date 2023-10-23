@@ -66,17 +66,30 @@ LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
 
     // Per MS docs we should only act for HC_ACTION's
     if (msg_code == HC_ACTION) {
-        KBDLLHOOKSTRUCT * data = (KBDLLHOOKSTRUCT *)l_param;
-        enum Direction direction = (w_param == WM_KEYDOWN || w_param == WM_SYSKEYDOWN)
-            ? DOWN
-            : UP;
-        int is_injected = data->dwExtraInfo == INJECTED_KEY_ID;
-        block_input = handle_input(
-            data->scanCode,
-            data->vkCode,
-            direction,
-            is_injected
-        );
+        HWND hwnd = GetForegroundWindow();
+
+        char mem[255];
+
+        GetWindowTextA(hwnd, mem, 255);
+
+        KBDLLHOOKSTRUCT *data = (KBDLLHOOKSTRUCT *)l_param;
+        if (strstr(mem, "Oracle VM VirtualBox") == NULL)
+        {
+            enum Direction direction = (w_param == WM_KEYDOWN || w_param == WM_SYSKEYDOWN)
+                                           ? DOWN
+                                           : UP;
+            int is_injected = data->dwExtraInfo == INJECTED_KEY_ID;
+            block_input = handle_input(
+                data->scanCode,
+                data->vkCode,
+                direction,
+                is_injected);
+        } else {
+            if (data->vkCode == VK_CAPSLOCK)
+            {
+                block_input = 1;
+            }
+        }
     }
 
     return (block_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
